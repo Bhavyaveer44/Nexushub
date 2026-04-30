@@ -9,7 +9,7 @@ cd whatsapp-webhook-service
 npm install
 cp .env.example .env
 npm start
-```
+npm run worker
 
 ## Service behavior
 
@@ -19,7 +19,9 @@ npm start
 - Normalizes them to a standard shape
 - Pushes the normalized payload to BullMQ queue `incoming-messages`
 - Returns HTTP 200 quickly even when queueing
-
+- Worker.js listens to the queue, consume the message and push the data in supabase table
+- Use supabase-schema.sql for schema creation in supabase. Add SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY to .env
+- CRM Dashboard endpoint: /dashboard
 ## Normalized payload
 
 ```json
@@ -81,3 +83,4 @@ npm start
 - Replace `validateWebhookRequest` with actual WhatsApp Cloud API signature verification before production.
 - For a production deployment, separate the worker process from the API process.
 - Configure Redis access through environment variables.
+- Configure Supabse access through environment variables.
