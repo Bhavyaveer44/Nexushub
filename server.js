@@ -254,7 +254,7 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Internal server error' });
 });
 
-const server = app.listen(PORT, () => {
+const server = app.listen(PORT, '0.0.0.0', () => {
   logger.info('WhatsApp webhook service started', {
     port: PORT,
     queueName: QUEUE_NAME,
