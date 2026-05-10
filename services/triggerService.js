@@ -3,12 +3,25 @@ const { Queue } = require('bullmq');
 const { eventBus } = require('./eventBus');
 const { logger } = require('./logger');
 
-const REDIS_CONFIG = {
-  host: process.env.REDIS_HOST || '127.0.0.1',
-  port: Number(process.env.REDIS_PORT || 6379),
-};
+const REDIS_CONFIG = process.env.REDIS_URL
+  ? process.env.REDIS_URL
+  : {
+      host: process.env.REDIS_HOST || '127.0.0.1',
+      port: Number(process.env.REDIS_PORT || 6379),
+      password: process.env.REDIS_PASSWORD,
+      db: 0,
+      retryStrategy: times => Math.min(times * 50, 2000),
+      maxRetriesPerRequest: null,
+    };
 
 const redis = new Redis(REDIS_CONFIG);
+redis.on('error', err => {
+  logger.error('Trigger layer Redis connection error', { error: err.message, code: err.code });
+  if (err.code === 'NOAUTH') {
+    logger.error('Trigger layer Redis authentication failed - check REDIS_PASSWORD environment variable');
+  }
+});
+
 const conversationTriggerQueue = new Queue('conversation-trigger', { connection: REDIS_CONFIG });
 
 const JOB_DELAY_MS = 30000; // 30 seconds
