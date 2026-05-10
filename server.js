@@ -17,18 +17,29 @@ const logger = {
 };
 
 // Support Railway's REDIS_URL or individual host/port config
-const REDIS_CONFIG = process.env.REDIS_URL 
-  ? process.env.REDIS_URL 
+const REDIS_CONFIG = process.env.REDIS_URL
+  ? process.env.REDIS_URL
   : {
       host: process.env.REDIS_HOST || 'localhost',
       port: Number(process.env.REDIS_PORT) || 6379,
       password: process.env.REDIS_PASSWORD,
       db: 0,
       retryStrategy: (times) => Math.min(times * 50, 2000),
+      maxRetriesPerRequest: null,
+      lazyConnect: true,
     };
 
-const redisConnection = new Redis(REDIS_CONFIG, {
-    maxRetriesPerRequest: null,
+const redisConnection = new Redis(REDIS_CONFIG);
+
+redisConnection.on('connect', () => {
+  logger.info('Redis connected successfully');
+});
+
+redisConnection.on('error', (error) => {
+  logger.error('Redis connection error', { error: error.message, code: error.code });
+  if (error.code === 'NOAUTH') {
+    logger.error('Redis authentication failed - check REDIS_PASSWORD');
+  }
 });
 
 redisConnection.on('connect', () => {
