@@ -10,12 +10,12 @@ const Redis = require('ioredis');
 
 const QUEUE_NAME = 'incoming-messages';
 const TRIGGER_QUEUE_NAME = 'conversation-trigger';
-const redisConfig = process.env.REDIS_URL || {
+const REDIS_CONFIG = process.env.REDIS_URL || {
     host: process.env.REDIS_HOST || '127.0.0.1',
     port: Number(process.env.REDIS_PORT) || 6379
 };
 
-const redisConnection = new Redis(redisConfig, {
+const redisConnection = new Redis(REDIS_CONFIG, {
     maxRetriesPerRequest: null,
 });
 
