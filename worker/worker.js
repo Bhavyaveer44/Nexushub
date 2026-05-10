@@ -6,6 +6,7 @@ const { insertMessage } = require('../services/messageService');
 const { processConversation } = require('../services/aiController');
 const { startTriggerLayer } = require('../services/triggerService');
 const { logger } = require('../services/logger');
+const Redis = require('ioredis');
 
 const QUEUE_NAME = 'incoming-messages';
 const TRIGGER_QUEUE_NAME = 'conversation-trigger';

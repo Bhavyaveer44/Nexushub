@@ -1,4 +1,5 @@
 const dotenv = require('dotenv');
+const Redis = require('ioredis');
 dotenv.config();
 
 const express = require('express');
