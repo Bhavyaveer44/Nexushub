@@ -19,7 +19,7 @@ async function insertMessage(message) {
   if (error) {
     const duplicateConstraint =
       error.message?.includes('duplicate key value') ||
-      error.details?.includes('already exists') ||
+      error.detail?.includes('already exists') ||
       error.code === '23505';
 
     if (duplicateConstraint) {

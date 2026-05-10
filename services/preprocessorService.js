@@ -36,7 +36,6 @@ const hindiTranslationMap = {
   'tum': 'you',
   'mera': 'my',
   'meri': 'my',
-  'mera': 'my',
   'kuch': 'some',
   'dost': 'friend',
   'bhai': 'brother',
@@ -86,7 +85,6 @@ const bengaliTranslationMap = {
   'kemon': 'how',
   'bhai': 'brother',
   'shundor': 'beautiful',
-  'ami': 'I',
   'amar': 'my',
   'tomar': 'your',
 };

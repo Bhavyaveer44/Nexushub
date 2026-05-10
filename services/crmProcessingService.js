@@ -465,7 +465,7 @@ function processConversation(conversationId, messages, previousOutputs = []) {
       business_requirements: [],
       next_steps: [],
       lead_status: 'cold',
-      key_entities: { product: null, budget: null, timeline: null },
+      logistics_entities: { pickup_location: null, delivery_location: null, shipment_type: null, weight: null, dimensions: null, timeline: null, special_handling: null },
     };
   }
 }

@@ -21,7 +21,7 @@ async function ensureConversation(conversation_id, name = null) {
 
         const duplicateConstraint =
           fallbackError?.message?.includes('duplicate key value') ||
-          fallbackError?.details?.includes('already exists') ||
+          fallbackError?.detail?.includes('already exists') ||
           fallbackError?.code === '23505';
 
         if (fallbackError && !duplicateConstraint) {

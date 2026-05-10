@@ -20,6 +20,7 @@ async function main() {
   const crm = processConversations(preprocessed.conversations);
 
   process.stdout.write(JSON.stringify(crm, null, 2));
+  process.exit(0);
 }
 
 main().catch(error => {

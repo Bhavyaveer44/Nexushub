@@ -4,6 +4,7 @@ dotenv.config();
 const express = require('express');
 const { Queue, QueueEvents } = require('bullmq');
 const { ensureConversation } = require('./services/conversationService');
+const { supabase } = require('./db/supabaseClient');
 
 const PORT = Number(process.env.PORT || 3000);
 const QUEUE_NAME = 'incoming-messages';
@@ -25,6 +26,10 @@ queueEvents.on('completed', ({ jobId }) => logger.info('Queue job completed', { 
 queueEvents.on('failed', ({ jobId, failedReason }) => logger.error('Queue job failed', { jobId, failedReason }));
 
 function validateWebhookRequest(req) {
+  if (process.env.DISABLE_WEBHOOK_VALIDATION === 'true') {
+    return true;
+  }
+
   // Placeholder validation. Replace this with real WhatsApp Cloud signature verification.
   const token = req.header('x-whatsapp-signature') || req.header('x-hub-signature-256');
   if (!token) {
@@ -78,6 +83,13 @@ function extractMessageData(body) {
 
 const app = express();
 app.use(express.json({ limit: '1mb' }));
+app.use((err, req, res, next) => {
+  if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+    logger.warn('Invalid JSON payload received', { error: err.message });
+    return res.status(400).json({ error: 'Invalid JSON payload' });
+  }
+  next(err);
+});
 
 // Enable CORS for the dashboard
 app.use((req, res, next) => {
@@ -121,8 +133,12 @@ app.post('/webhook', async (req, res) => {
     logger.info('Enqueued incoming WhatsApp message', { message_id, conversation_id: from });
     return res.status(200).json({ status: 'accepted' });
   } catch (error) {
-    logger.error('Webhook processing error', { error: error.message, stack: error.stack });
-    return res.status(200).json({ status: 'ignored' });
+    logger.error('Webhook processing error', { error: error.message, stack: error.stack, body: req.body });
+    const responsePayload = { status: 'ignored' };
+    if (process.env.NODE_ENV !== 'production') {
+      responsePayload.error = error.message;
+    }
+    return res.status(500).json(responsePayload);
   }
 });
 
@@ -134,19 +150,11 @@ app.get('/dashboard', (req, res) => {
 // API endpoint to fetch CRM data
 app.get('/api/crm-data', async (req, res) => {
   try {
-    // Import supabase client (you'll need to add this import at the top)
-    const { createClient } = require('@supabase/supabase-js');
-    const supabase = createClient(
-      process.env.SUPABASE_URL,
-      process.env.SUPABASE_SERVICE_ROLE_KEY
-    );
-
     // Get the latest entry for each conversation_id based on created_at
     const { data: outputs, error } = await supabase
       .from('ai_outputs')
       .select('*')
-      .order('created_at', { ascending: false })
-      .order('conversation_id', { ascending: true });
+      .order('created_at', { ascending: false });
 
     if (error) {
       logger.error('Failed to fetch CRM data', { error: error.message });
@@ -198,11 +206,36 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Internal server error' });
 });
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   logger.info('WhatsApp webhook service started', {
     port: PORT,
     queueName: QUEUE_NAME,
     redisHost: REDIS_CONFIG.host,
     redisPort: REDIS_CONFIG.port,
+  });
+});
+
+server.on('error', (error) => {
+  if (error.code === 'EADDRINUSE') {
+    logger.error('Port already in use', { port: PORT });
+    process.exit(1);
+  }
+  logger.error('Server error', { error: error.message, stack: error.stack });
+  throw error;
+});
+
+process.on('SIGTERM', () => {
+  logger.info('SIGTERM received, closing server gracefully');
+  server.close(() => {
+    logger.info('Server closed');
+    process.exit(0);
+  });
+});
+
+process.on('SIGINT', () => {
+  logger.info('SIGINT received, closing server gracefully');
+  server.close(() => {
+    logger.info('Server closed');
+    process.exit(0);
   });
 });

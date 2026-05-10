@@ -18,7 +18,7 @@ async function processConversation(conversation_id) {
       .from('messages')
       .select('message_id, conversation_id, direction, content, timestamp')
       .eq('conversation_id', conversation_id)
-      .eq('processed', 'false')
+      .eq('processed', false)
       .order('timestamp', { ascending: true });
 
     if (fetchError) {
@@ -90,7 +90,7 @@ async function processConversation(conversation_id) {
       .eq('processed', false);
 
     if (updateError) {
-      console.error('Error updating processed flag:', updateError);
+      logger.error('Error updating processed flag', { error: updateError.message });
     }
 
     logger.info('AI Controller: Successfully stored AI output', { conversation_id, id: stored.id });
