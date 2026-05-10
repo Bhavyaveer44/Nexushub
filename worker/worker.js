@@ -11,16 +11,10 @@ const Redis = require('ioredis');
 const QUEUE_NAME = 'incoming-messages';
 const TRIGGER_QUEUE_NAME = 'conversation-trigger';
 
-// Support Railway's REDIS_URL or individual host/port config
+// Build Redis connection URL with authentication
 const REDIS_CONFIG = process.env.REDIS_URL 
   ? process.env.REDIS_URL 
-  : {
-      host: process.env.REDIS_HOST || 'redis-2pv5.railway.internal',
-      port: Number(process.env.REDIS_PORT) || 6379,
-      password: process.env.REDIS_PASSWORD,
-      db: 0,
-      retryStrategy: (times) => Math.min(times * 50, 2000),
-    };
+  : `redis://:${process.env.REDIS_PASSWORD}@${process.env.REDIS_HOST || 'localhost'}:${process.env.REDIS_PORT || 6379}/0`;
 
 const redisConnection = new Redis(REDIS_CONFIG, {
     maxRetriesPerRequest: null,
