@@ -233,6 +233,19 @@ app.get('/api/crm-data', async (req, res) => {
   }
 });
 
+app.get('/', (req, res) => {
+  res.json({ status: 'ok', service: 'WhatsApp webhook service' });
+});
+
+app.get('/health', (req, res) => {
+  res.json({ status: 'healthy', redis: 'connected' });
+});
+
+app.use((req, res) => {
+  logger.warn('Route not found', { method: req.method, path: req.path });
+  res.status(404).json({ error: 'Not found' });
+});
+
 app.use((err, req, res, next) => {
   logger.error('Unhandled server error', { error: err?.message, stack: err?.stack });
   res.status(500).json({ error: 'Internal server error' });
