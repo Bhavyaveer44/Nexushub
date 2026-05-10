@@ -9,10 +9,17 @@ const { supabase } = require('./db/supabaseClient');
 
 const PORT = Number(process.env.PORT || 3000);
 const QUEUE_NAME = 'incoming-messages';
-const REDIS_CONFIG = process.env.REDIS_URL || {
-    host: process.env.REDIS_HOST || '127.0.0.1',
-    port: Number(process.env.REDIS_PORT) || 6379
-};
+
+// Support Railway's REDIS_URL or individual host/port config
+const REDIS_CONFIG = process.env.REDIS_URL 
+  ? process.env.REDIS_URL 
+  : {
+      host: process.env.REDIS_HOST || 'redis-2pv5.railway.internal',
+      port: Number(process.env.REDIS_PORT) || 6379,
+      password: process.env.REDIS_PASSWORD,
+      db: 0,
+      retryStrategy: (times) => Math.min(times * 50, 2000),
+    };
 
 const redisConnection = new Redis(REDIS_CONFIG, {
     maxRetriesPerRequest: null,
