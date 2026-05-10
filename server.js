@@ -10,6 +10,12 @@ const { supabase } = require('./db/supabaseClient');
 const PORT = Number(process.env.PORT || 3000);
 const QUEUE_NAME = 'incoming-messages';
 
+const logger = {
+  info: (message, meta = {}) => console.log(JSON.stringify({ level: 'info', message, ...meta, timestamp: new Date().toISOString() })),
+  warn: (message, meta = {}) => console.warn(JSON.stringify({ level: 'warn', message, ...meta, timestamp: new Date().toISOString() })),
+  error: (message, meta = {}) => console.error(JSON.stringify({ level: 'error', message, ...meta, timestamp: new Date().toISOString() })),
+};
+
 // Support Railway's REDIS_URL or individual host/port config
 const REDIS_CONFIG = process.env.REDIS_URL 
   ? process.env.REDIS_URL 
@@ -25,15 +31,29 @@ const redisConnection = new Redis(REDIS_CONFIG, {
     maxRetriesPerRequest: null,
 });
 
-const logger = {
-  info: (message, meta = {}) => console.log(JSON.stringify({ level: 'info', message, ...meta, timestamp: new Date().toISOString() })),
-  warn: (message, meta = {}) => console.warn(JSON.stringify({ level: 'warn', message, ...meta, timestamp: new Date().toISOString() })),
-  error: (message, meta = {}) => console.error(JSON.stringify({ level: 'error', message, ...meta, timestamp: new Date().toISOString() })),
-};
+redisConnection.on('connect', () => {
+  logger.info('Redis connected successfully');
+});
+
+redisConnection.on('error', (err) => {
+  logger.error('Redis connection error', { error: err.message, code: err.code });
+});
+
+redisConnection.on('close', () => {
+  logger.warn('Redis connection closed');
+});
 
 const incomingMessagesQueue = new Queue(QUEUE_NAME, { connection: REDIS_CONFIG });
+
+incomingMessagesQueue.on('error', (err) => {
+  logger.error('Queue connection error', { error: err.message, code: err.code });
+});
+
 const queueEvents = new QueueEvents(QUEUE_NAME, { connection: REDIS_CONFIG });
 
+queueEvents.on('error', (err) => {
+  logger.error('QueueEvents connection error', { error: err.message, code: err.code });
+});
 queueEvents.on('completed', ({ jobId }) => logger.info('Queue job completed', { jobId }));
 queueEvents.on('failed', ({ jobId, failedReason }) => logger.error('Queue job failed', { jobId, failedReason }));
 
