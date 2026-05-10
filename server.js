@@ -14,7 +14,7 @@ const QUEUE_NAME = 'incoming-messages';
 const REDIS_CONFIG = process.env.REDIS_URL 
   ? process.env.REDIS_URL 
   : {
-      host: process.env.REDIS_HOST || 'redis-2pv5.railway.internal',
+      host: process.env.REDIS_HOST || 'localhost',
       port: Number(process.env.REDIS_PORT) || 6379,
       password: process.env.REDIS_PASSWORD,
       db: 0,
