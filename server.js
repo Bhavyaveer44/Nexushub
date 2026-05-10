@@ -42,14 +42,6 @@ redisConnection.on('error', (error) => {
   }
 });
 
-redisConnection.on('connect', () => {
-  logger.info('Redis connected successfully');
-});
-
-redisConnection.on('error', (err) => {
-  logger.error('Redis connection error', { error: err.message, code: err.code });
-});
-
 redisConnection.on('close', () => {
   logger.warn('Redis connection closed');
 });

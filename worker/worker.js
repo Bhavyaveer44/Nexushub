@@ -12,16 +12,15 @@ const QUEUE_NAME = 'incoming-messages';
 const TRIGGER_QUEUE_NAME = 'conversation-trigger';
 
 // Support Railway's REDIS_URL or individual host/port config
-const REDIS_CONFIG = process.env.REDIS_URL 
-  ? process.env.REDIS_URL 
+const REDIS_CONFIG = process.env.REDIS_URL
+  ? process.env.REDIS_URL
   : {
       host: process.env.REDIS_HOST || 'redis-2pv5.railway.internal',
       port: Number(process.env.REDIS_PORT) || 6379,
       password: process.env.REDIS_PASSWORD,
       db: 0,
-      retryStrategy: (times) => Math.min(times * 50, 2000),
+      retryStrategy: times => Math.min(times * 50, 2000),
       maxRetriesPerRequest: null,
-      lazyConnect: true,
     };
 
 const redisConnection = new Redis(REDIS_CONFIG);
@@ -30,38 +29,11 @@ redisConnection.on('connect', () => {
   logger.info('Worker Redis connected successfully');
 });
 
-redisConnection.on('error', (error) => {
-  logger.error('Worker Redis connection error', { error: error.message, code: error.code });
-  if (error.code === 'NOAUTH') {
-    logger.error('Worker Redis authentication failed - check REDIS_PASSWORD environment variable');
-  }
-});
-
-redisConnection.on('connect', () => {
-  logger.info('Worker Redis connected successfully');
-});
-
-redisConnection.on('error', (error) => {
-  logger.error('Worker Redis connection error', { error: error.message, code: error.code });
-  if (error.code === 'NOAUTH') {
-    logger.error('Worker Redis authentication failed - check REDIS_PASSWORD environment variable');
-  }
-});
-      db: 0,
-      retryStrategy: (times) => Math.min(times * 50, 2000),
-    };
->>>>>>> d15289c (Fix Redis auth and deployment config)
-
-const redisConnection = new Redis(REDIS_CONFIG, {
-    maxRetriesPerRequest: null,
-});
-
-redisConnection.on('connect', () => {
-  logger.info('Worker Redis connected successfully');
-});
-
-redisConnection.on('error', (err) => {
+redisConnection.on('error', err => {
   logger.error('Worker Redis connection error', { error: err.message, code: err.code });
+  if (err.code === 'NOAUTH') {
+    logger.error('Worker Redis authentication failed - check REDIS_PASSWORD environment variable');
+  }
 });
 
 redisConnection.on('close', () => {
@@ -121,10 +93,7 @@ const triggerWorker = new Worker(
       return { error: 'Missing conversation_id' };
     }
 
-    // Call AI Controller to process the conversation
-    const result = await processConversation(conversation_id);
-
-    return result;
+    return processConversation(conversation_id);
   },
   {
     connection: REDIS_CONFIG,
