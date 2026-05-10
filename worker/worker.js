@@ -9,12 +9,15 @@ const { logger } = require('../services/logger');
 
 const QUEUE_NAME = 'incoming-messages';
 const TRIGGER_QUEUE_NAME = 'conversation-trigger';
-const REDIS_CONFIG = process.env.REDIS_URL 
-  ? process.env.REDIS_URL 
-  : {
-      host: process.env.REDIS_HOST || '127.0.0.1',
-      port: Number(process.env.REDIS_PORT || 6379),
-    };
+const redisConfig = process.env.REDIS_URL || {
+    host: process.env.REDIS_HOST || '127.0.0.1',
+    port: Number(process.env.REDIS_PORT) || 6379
+};
+
+const redisConnection = new Redis(redisConfig, {
+    maxRetriesPerRequest: null,
+});
+
 const queueEvents = new QueueEvents(QUEUE_NAME, { connection: REDIS_CONFIG });
 queueEvents.on('completed', ({ jobId }) => logger.info('Queue event completed', { jobId }));
 queueEvents.on('failed', ({ jobId, failedReason }) => logger.error('Queue event failed', { jobId, failedReason }));

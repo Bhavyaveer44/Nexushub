@@ -8,12 +8,14 @@ const { supabase } = require('./db/supabaseClient');
 
 const PORT = Number(process.env.PORT || 3000);
 const QUEUE_NAME = 'incoming-messages';
-const REDIS_CONFIG = process.env.REDIS_URL 
-  ? process.env.REDIS_URL 
-  : {
-      host: process.env.REDIS_HOST || '127.0.0.1',
-      port: Number(process.env.REDIS_PORT || 6379),
-    };
+const redisConfig = process.env.REDIS_URL || {
+    host: process.env.REDIS_HOST || '127.0.0.1',
+    port: Number(process.env.REDIS_PORT) || 6379
+};
+
+const redisConnection = new Redis(redisConfig, {
+    maxRetriesPerRequest: null,
+});
 
 const logger = {
   info: (message, meta = {}) => console.log(JSON.stringify({ level: 'info', message, ...meta, timestamp: new Date().toISOString() })),
