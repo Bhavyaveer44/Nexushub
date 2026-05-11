@@ -84,10 +84,10 @@ const CRMDashboard = () => {
   };
 
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden">
+    <div className="flex min-h-screen flex-col md:flex-row bg-gray-50">
       {/* Left Panel - Conversation List */}
       {/* Hidden on mobile if detail is shown */}
-      <div className={`${showDetailOnMobile ? 'hidden' : 'flex'} w-full md:flex md:w-1/3 bg-white border-r border-gray-200 flex-col`}>
+      <div className={`${showDetailOnMobile ? 'hidden' : 'flex'} w-full md:flex md:w-1/3 bg-white border-b border-gray-200 md:border-b-0 md:border-r flex-col`}>
         <div className="p-4 md:p-6 border-b border-gray-200">
           <h1 className="text-xl md:text-2xl font-bold text-gray-900 mb-4">CRM Dashboard</h1>
 
