@@ -1,47 +1,24 @@
 import React, { useState, useMemo } from 'react';
 
 const CRMDashboard = () => {
-  // Dummy data - replace with actual API call
   const [conversations] = useState({
     "17863553958": {
       "summary": "Customer requested Yaar, I need 50Kgs of cashew, Send at my address, And what is the price going for fauxnut. Business has not responded yet.",
-      "customer_requirements": [
-        "Yaar, I need 50Kgs of cashew",
-        "Send at my address",
-        "And what is the price going for fauxnut"
-      ],
+      "customer_requirements": ["Yaar, I need 50Kgs of cashew", "Send at my address", "And what is the price going for fauxnut"],
       "business_requirements": [],
       "next_steps": [
-        {
-          "action": "Confirm and process the order with delivery details",
-          "owner": "business"
-        },
-        {
-          "action": "Provide pricing information for requested products",
-          "owner": "business"
-        }
+        { "action": "Confirm and process the order with delivery details", "owner": "business" },
+        { "action": "Provide pricing information for requested products", "owner": "business" }
       ],
       "lead_status": "warm"
     },
     "17863553959": {
       "summary": "Customer is interested in buying a car and will send budget details.",
-      "customer_requirements": [
-        "Need some suggestions in buying a car",
-        "Will send budget details"
-      ],
-      "business_requirements": [
-        "Provide car recommendations",
-        "Discuss budget options"
-      ],
+      "customer_requirements": ["Need some suggestions in buying a car", "Will send budget details"],
+      "business_requirements": ["Provide car recommendations", "Discuss budget options"],
       "next_steps": [
-        {
-          "action": "Send need some suggestions in buying a car. will send you my budget",
-          "owner": "business"
-        },
-        {
-          "action": "Provide budget information",
-          "owner": "customer"
-        }
+        { "action": "Send need some suggestions in buying a car. will send you my budget", "owner": "business" },
+        { "action": "Provide budget information", "owner": "customer" }
       ],
       "lead_status": "hot"
     },
@@ -49,12 +26,7 @@ const CRMDashboard = () => {
       "summary": "Initial inquiry about services, no specific requirements yet.",
       "customer_requirements": [],
       "business_requirements": [],
-      "next_steps": [
-        {
-          "action": "Gather more information about customer needs",
-          "owner": "business"
-        }
-      ],
+      "next_steps": [{ "action": "Gather more information about customer needs", "owner": "business" }],
       "lead_status": "cold"
     }
   });
@@ -62,8 +34,11 @@ const CRMDashboard = () => {
   const [selectedConversation, setSelectedConversation] = useState(Object.keys(conversations)[0]);
   const [statusFilter, setStatusFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // state to handle mobile view switching
+  const [showDetailOnMobile, setShowDetailOnMobile] = useState(false);
 
-  // Color coding for lead status
+  // Helper for status styles
   const getStatusColor = (status) => {
     switch (status) {
       case 'hot': return 'bg-red-100 text-red-800 border-red-200';
@@ -85,21 +60,15 @@ const CRMDashboard = () => {
   // Filter and sort conversations
   const filteredConversations = useMemo(() => {
     let filtered = Object.entries(conversations);
-
-    // Filter by status
     if (statusFilter !== 'all') {
       filtered = filtered.filter(([_, data]) => data.lead_status === statusFilter);
     }
-
-    // Filter by search term
     if (searchTerm) {
       filtered = filtered.filter(([id, data]) =>
         id.toLowerCase().includes(searchTerm.toLowerCase()) ||
         data.summary.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
-
-    // Sort: HOT first, then WARM, then COLD
     return filtered.sort(([_, a], [__, b]) => {
       const order = { hot: 0, warm: 1, cold: 2 };
       return order[a.lead_status] - order[b.lead_status];
@@ -108,32 +77,38 @@ const CRMDashboard = () => {
 
   const selectedData = conversations[selectedConversation];
 
+  // Mobile navigation handler
+  const handleSelectConversation = (id) => {
+    setSelectedConversation(id);
+    setShowDetailOnMobile(true);
+  };
+
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen bg-gray-50 overflow-hidden">
       {/* Left Panel - Conversation List */}
-      <div className="w-1/3 bg-white border-r border-gray-200 flex flex-col">
-        {/* Header */}
-        <div className="p-6 border-b border-gray-200">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">CRM Dashboard</h1>
+      {/* Hidden on mobile if detail is shown */}
+      <div className={`${showDetailOnMobile ? 'hidden' : 'flex'} w-full md:flex md:w-1/3 bg-white border-r border-gray-200 flex-col`}>
+        <div className="p-4 md:p-6 border-b border-gray-200">
+          <h1 className="text-xl md:text-2xl font-bold text-gray-900 mb-4">CRM Dashboard</h1>
 
           {/* Search */}
           <div className="mb-4">
             <input
               type="text"
-              placeholder="Search conversations..."
+              placeholder="Search..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
-          {/* Status Filter */}
-          <div className="flex space-x-2">
+          {/* Status Filter - Scrollable on small screens */}
+          <div className="flex space-x-2 overflow-x-auto pb-2 no-scrollbar">
             {['all', 'hot', 'warm', 'cold'].map(status => (
               <button
                 key={status}
                 onClick={() => setStatusFilter(status)}
-                className={`px-3 py-1 rounded-full text-sm font-medium capitalize transition-colors ${
+                className={`px-3 py-1 rounded-full text-xs font-medium capitalize flex-shrink-0 transition-colors ${
                   statusFilter === status
                     ? 'bg-blue-100 text-blue-800 border-blue-200'
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -150,135 +125,108 @@ const CRMDashboard = () => {
           {filteredConversations.map(([id, data]) => (
             <div
               key={id}
-              onClick={() => setSelectedConversation(id)}
+              onClick={() => handleSelectConversation(id)}
               className={`p-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors ${
-                selectedConversation === id ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''
+                selectedConversation === id ? 'bg-blue-50 md:border-l-4 md:border-l-blue-500' : ''
               }`}
             >
               <div className="flex items-center justify-between mb-2">
                 <span className="font-medium text-gray-900 truncate">{id}</span>
-                <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(data.lead_status)}`}>
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium border ${getStatusColor(data.lead_status)}`}>
                   {getStatusIcon(data.lead_status)} {data.lead_status}
                 </span>
               </div>
-              <p className="text-sm text-gray-600 line-clamp-2">{data.summary}</p>
-              <div className="mt-2 flex items-center text-xs text-gray-500">
-                <span className="mr-3">Next: {data.next_steps.length}</span>
-                <span>Req: {data.customer_requirements.length}</span>
-              </div>
+              <p className="text-xs text-gray-600 line-clamp-2">{data.summary}</p>
             </div>
           ))}
         </div>
       </div>
 
       {/* Right Panel - Conversation Details */}
-      <div className="flex-1 flex flex-col">
+      {/* Hidden on mobile if list is shown */}
+      <div className={`${!showDetailOnMobile ? 'hidden' : 'flex'} w-full md:flex md:flex-1 flex-col bg-gray-50`}>
         {selectedData ? (
-          <div className="flex-1 overflow-y-auto">
-            {/* Header */}
-            <div className="bg-white border-b border-gray-200 p-6">
-              <div className="flex items-center justify-between">
-                <h2 className="text-xl font-semibold text-gray-900">{selectedConversation}</h2>
-                <span className={`px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(selectedData.lead_status)}`}>
+          <div className="flex-1 flex flex-col overflow-hidden">
+            {/* Header with Back Button for Mobile */}
+            <div className="bg-white border-b border-gray-200 p-4 md:p-6 flex items-center gap-4">
+              <button 
+                onClick={() => setShowDetailOnMobile(false)}
+                className="md:hidden p-2 hover:bg-gray-100 rounded-full"
+              >
+                ←
+              </button>
+              <div className="flex-1 flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900">{selectedConversation}</h2>
+                </div>
+                <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(selectedData.lead_status)}`}>
                   {getStatusIcon(selectedData.lead_status)} {selectedData.lead_status.toUpperCase()}
                 </span>
               </div>
             </div>
 
-            {/* Content */}
-            <div className="p-6 space-y-6">
-              {/* Summary */}
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center">
-                  <span className="mr-2">📝</span>
-                  Summary
+            {/* Scrollable Content */}
+            <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 md:space-y-6">
+              {/* Summary Card */}
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+                <h3 className="text-md font-semibold text-gray-900 mb-2 flex items-center">
+                  <span className="mr-2">📝</span> Summary
                 </h3>
-                <p className="text-gray-700 leading-relaxed">{selectedData.summary}</p>
+                <p className="text-sm text-gray-700 leading-relaxed">{selectedData.summary}</p>
               </div>
 
-              {/* Customer Requirements */}
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center">
-                  <span className="mr-2">👤</span>
-                  Customer Requirements
-                </h3>
-                {selectedData.customer_requirements.length > 0 ? (
+              {/* Grid for Requirements (Stacked on mobile, side-by-side on desktop) */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+                  <h3 className="text-md font-semibold text-gray-900 mb-3 flex items-center">
+                    <span className="mr-2">👤</span> Customer Needs
+                  </h3>
                   <ul className="space-y-2">
-                    {selectedData.customer_requirements.map((req, index) => (
-                      <li key={index} className="flex items-start">
-                        <span className="inline-block w-2 h-2 bg-blue-500 rounded-full mt-2 mr-3 flex-shrink-0"></span>
-                        <span className="text-gray-700">{req}</span>
+                    {selectedData.customer_requirements.map((req, i) => (
+                      <li key={i} className="text-sm text-gray-700 flex items-start">
+                        <span className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-1.5 mr-3 flex-shrink-0"></span>
+                        {req}
                       </li>
                     ))}
                   </ul>
-                ) : (
-                  <p className="text-gray-500 italic">No customer requirements recorded</p>
-                )}
-              </div>
+                </div>
 
-              {/* Business Requirements */}
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center">
-                  <span className="mr-2">🏢</span>
-                  Business Requirements
-                </h3>
-                {selectedData.business_requirements.length > 0 ? (
-                  <ul className="space-y-2">
-                    {selectedData.business_requirements.map((req, index) => (
-                      <li key={index} className="flex items-start">
-                        <span className="inline-block w-2 h-2 bg-green-500 rounded-full mt-2 mr-3 flex-shrink-0"></span>
-                        <span className="text-gray-700">{req}</span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-gray-500 italic">No business requirements recorded</p>
-                )}
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+                  <h3 className="text-md font-semibold text-gray-900 mb-3 flex items-center">
+                    <span className="mr-2">🏢</span> Business Needs
+                  </h3>
+                  {selectedData.business_requirements.length > 0 ? (
+                    <ul className="space-y-2">
+                      {selectedData.business_requirements.map((req, i) => (
+                        <li key={i} className="text-sm text-gray-700 flex items-start">
+                          <span className="w-1.5 h-1.5 bg-green-500 rounded-full mt-1.5 mr-3 flex-shrink-0"></span>
+                          {req}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : <p className="text-xs text-gray-400 italic">None</p>}
+                </div>
               </div>
 
               {/* Next Steps */}
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center">
-                  <span className="mr-2">📋</span>
-                  Next Steps
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+                <h3 className="text-md font-semibold text-gray-900 mb-3 flex items-center">
+                  <span className="mr-2">🚀</span> Next Steps
                 </h3>
-                {selectedData.next_steps.length > 0 ? (
-                  <div className="space-y-3">
-                    {selectedData.next_steps.map((step, index) => (
-                      <div key={index} className="flex items-start p-3 bg-gray-50 rounded-lg">
-                        <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium mr-3 ${
-                          step.owner === 'business'
-                            ? 'bg-blue-100 text-blue-800'
-                            : 'bg-green-100 text-green-800'
-                        }`}>
-                          {step.owner === 'business' ? '🏢' : '👤'}
-                        </div>
-                        <div className="flex-1">
-                          <p className="text-gray-900 font-medium">{step.action}</p>
-                          <span className={`inline-block mt-1 px-2 py-1 text-xs font-medium rounded-full ${
-                            step.owner === 'business'
-                              ? 'bg-blue-100 text-blue-800'
-                              : 'bg-green-100 text-green-800'
-                          }`}>
-                            {step.owner}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-gray-500 italic">No next steps defined</p>
-                )}
+                <div className="space-y-3">
+                  {selectedData.next_steps.map((step, i) => (
+                    <div key={i} className="flex items-center p-3 bg-gray-50 rounded-lg border border-gray-100 text-sm">
+                      <span className="mr-3">{step.owner === 'business' ? '🏢' : '👤'}</span>
+                      <p className="flex-1 text-gray-800">{step.action}</p>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
         ) : (
-          <div className="flex-1 flex items-center justify-center">
-            <div className="text-center">
-              <div className="text-6xl mb-4">📊</div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Select a Conversation</h3>
-              <p className="text-gray-600">Choose a conversation from the list to view details</p>
-            </div>
+          <div className="flex-1 flex items-center justify-center p-6 text-center">
+            <p className="text-gray-500">Select a lead to see details</p>
           </div>
         )}
       </div>
