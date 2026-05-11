@@ -1,87 +1,111 @@
 import React, { useState, useMemo } from 'react';
+import ConversationList from './components/ConversationList';
+import ConversationDetail from './components/ConversationDetail';
 
+// ─── Static seed data ────────────────────────────────────────────────────────
+
+const INITIAL_CONVERSATIONS = {
+  "17863553958": {
+    summary: "Customer requested Yaar, I need 50Kgs of cashew, Send at my address, And what is the price going for fauxnut. Business has not responded yet.",
+    customer_requirements: [
+      "Yaar, I need 50Kgs of cashew",
+      "Send at my address",
+      "And what is the price going for fauxnut",
+    ],
+    business_requirements: [],
+    next_steps: [
+      { action: "Confirm and process the order with delivery details", owner: "business" },
+      { action: "Provide pricing information for requested products", owner: "business" },
+    ],
+    lead_status: "warm",
+  },
+  "17863553959": {
+    summary: "Customer is interested in buying a car and will send budget details.",
+    customer_requirements: [
+      "Need some suggestions in buying a car",
+      "Will send budget details",
+    ],
+    business_requirements: [
+      "Provide car recommendations",
+      "Discuss budget options",
+    ],
+    next_steps: [
+      { action: "Send need some suggestions in buying a car. will send you my budget", owner: "business" },
+      { action: "Provide budget information", owner: "customer" },
+    ],
+    lead_status: "hot",
+  },
+  "17863553960": {
+    summary: "Initial inquiry about services, no specific requirements yet.",
+    customer_requirements: [],
+    business_requirements: [],
+    next_steps: [
+      { action: "Gather more information about customer needs", owner: "business" },
+    ],
+    lead_status: "cold",
+  },
+};
+
+const STATUS_ORDER = { hot: 0, warm: 1, cold: 2 };
+
+// ─── CRMDashboard ─────────────────────────────────────────────────────────────
+
+/**
+ * CRMDashboard — top-level container that owns all state and composes the
+ * ConversationList and ConversationDetail panels.
+ *
+ * Layout strategy:
+ *   • Mobile  (<sm): flex-col — list stacks above detail; the detail panel
+ *     slides into view (via conditional rendering) when a row is tapped, and
+ *     a back button returns to the list.
+ *   • Desktop (≥sm): flex-row — both panels are always visible side-by-side.
+ */
 const CRMDashboard = () => {
-  const [conversations] = useState({
-    "17863553958": {
-      "summary": "Customer requested Yaar, I need 50Kgs of cashew, Send at my address, And what is the price going for fauxnut. Business has not responded yet.",
-      "customer_requirements": ["Yaar, I need 50Kgs of cashew", "Send at my address", "And what is the price going for fauxnut"],
-      "business_requirements": [],
-      "next_steps": [
-        { "action": "Confirm and process the order with delivery details", "owner": "business" },
-        { "action": "Provide pricing information for requested products", "owner": "business" }
-      ],
-      "lead_status": "warm"
-    },
-    "17863553959": {
-      "summary": "Customer is interested in buying a car and will send budget details.",
-      "customer_requirements": ["Need some suggestions in buying a car", "Will send budget details"],
-      "business_requirements": ["Provide car recommendations", "Discuss budget options"],
-      "next_steps": [
-        { "action": "Send need some suggestions in buying a car. will send you my budget", "owner": "business" },
-        { "action": "Provide budget information", "owner": "customer" }
-      ],
-      "lead_status": "hot"
-    },
-    "17863553960": {
-      "summary": "Initial inquiry about services, no specific requirements yet.",
-      "customer_requirements": [],
-      "business_requirements": [],
-      "next_steps": [{ "action": "Gather more information about customer needs", "owner": "business" }],
-      "lead_status": "cold"
-    }
-  });
+  const [conversations] = useState(INITIAL_CONVERSATIONS);
 
-  const [selectedConversation, setSelectedConversation] = useState(Object.keys(conversations)[0]);
+  const [selectedId, setSelectedId] = useState(Object.keys(INITIAL_CONVERSATIONS)[0]);
   const [statusFilter, setStatusFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
-  
-  // state to handle mobile view switching
-  const [showDetailOnMobile, setShowDetailOnMobile] = useState(false);
 
-  // Helper for status styles
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'hot': return 'bg-red-100 text-red-800 border-red-200';
-      case 'warm': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'cold': return 'bg-gray-100 text-gray-800 border-gray-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
-  };
+  // On mobile, track whether the detail panel is in view.
+  const [showDetail, setShowDetail] = useState(false);
 
-  const getStatusIcon = (status) => {
-    switch (status) {
-      case 'hot': return '🔥';
-      case 'warm': return '🌡️';
-      case 'cold': return '❄️';
-      default: return '📋';
-    }
-  };
+  // ── Derived data ────────────────────────────────────────────────────────────
 
-  // Filter and sort conversations
   const filteredConversations = useMemo(() => {
-    let filtered = Object.entries(conversations);
+    let entries = Object.entries(conversations);
+
     if (statusFilter !== 'all') {
-      filtered = filtered.filter(([_, data]) => data.lead_status === statusFilter);
+      entries = entries.filter(([, data]) => data.lead_status === statusFilter);
     }
-    if (searchTerm) {
-      filtered = filtered.filter(([id, data]) =>
-        id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        data.summary.toLowerCase().includes(searchTerm.toLowerCase())
+
+    if (searchTerm.trim()) {
+      const term = searchTerm.toLowerCase();
+      entries = entries.filter(
+        ([id, data]) =>
+          id.toLowerCase().includes(term) ||
+          data.summary.toLowerCase().includes(term),
       );
     }
-    return filtered.sort(([_, a], [__, b]) => {
-      const order = { hot: 0, warm: 1, cold: 2 };
-      return order[a.lead_status] - order[b.lead_status];
-    });
+
+    return entries.sort(
+      ([, a], [, b]) =>
+        (STATUS_ORDER[a.lead_status] ?? 3) - (STATUS_ORDER[b.lead_status] ?? 3),
+    );
   }, [conversations, statusFilter, searchTerm]);
 
-  const selectedData = conversations[selectedConversation];
+  const selectedData = conversations[selectedId] ?? null;
 
-  // Mobile navigation handler
+  // ── Handlers ────────────────────────────────────────────────────────────────
+
   const handleSelectConversation = (id) => {
-    setSelectedConversation(id);
-    setShowDetailOnMobile(true);
+    setSelectedId(id);
+    setShowDetail(true);
   };
+
+  const handleBack = () => setShowDetail(false);
+
+  // ── Render ──────────────────────────────────────────────────────────────────
 
   return (
     <div className="flex min-h-screen flex-col md:flex-row bg-gray-50">
@@ -142,93 +166,19 @@ const CRMDashboard = () => {
         </div>
       </div>
 
-      {/* Right Panel - Conversation Details */}
-      {/* Hidden on mobile if list is shown */}
-      <div className={`${!showDetailOnMobile ? 'hidden' : 'flex'} w-full md:flex md:flex-1 flex-col bg-gray-50`}>
-        {selectedData ? (
-          <div className="flex-1 flex flex-col overflow-hidden">
-            {/* Header with Back Button for Mobile */}
-            <div className="bg-white border-b border-gray-200 p-4 md:p-6 flex items-center gap-4">
-              <button 
-                onClick={() => setShowDetailOnMobile(false)}
-                className="md:hidden p-2 hover:bg-gray-100 rounded-full"
-              >
-                ←
-              </button>
-              <div className="flex-1 flex items-center justify-between">
-                <div>
-                  <h2 className="text-lg font-semibold text-gray-900">{selectedConversation}</h2>
-                </div>
-                <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(selectedData.lead_status)}`}>
-                  {getStatusIcon(selectedData.lead_status)} {selectedData.lead_status.toUpperCase()}
-                </span>
-              </div>
-            </div>
-
-            {/* Scrollable Content */}
-            <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 md:space-y-6">
-              {/* Summary Card */}
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-                <h3 className="text-md font-semibold text-gray-900 mb-2 flex items-center">
-                  <span className="mr-2">📝</span> Summary
-                </h3>
-                <p className="text-sm text-gray-700 leading-relaxed">{selectedData.summary}</p>
-              </div>
-
-              {/* Grid for Requirements (Stacked on mobile, side-by-side on desktop) */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-                  <h3 className="text-md font-semibold text-gray-900 mb-3 flex items-center">
-                    <span className="mr-2">👤</span> Customer Needs
-                  </h3>
-                  <ul className="space-y-2">
-                    {selectedData.customer_requirements.map((req, i) => (
-                      <li key={i} className="text-sm text-gray-700 flex items-start">
-                        <span className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-1.5 mr-3 flex-shrink-0"></span>
-                        {req}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-                  <h3 className="text-md font-semibold text-gray-900 mb-3 flex items-center">
-                    <span className="mr-2">🏢</span> Business Needs
-                  </h3>
-                  {selectedData.business_requirements.length > 0 ? (
-                    <ul className="space-y-2">
-                      {selectedData.business_requirements.map((req, i) => (
-                        <li key={i} className="text-sm text-gray-700 flex items-start">
-                          <span className="w-1.5 h-1.5 bg-green-500 rounded-full mt-1.5 mr-3 flex-shrink-0"></span>
-                          {req}
-                        </li>
-                      ))}
-                    </ul>
-                  ) : <p className="text-xs text-gray-400 italic">None</p>}
-                </div>
-              </div>
-
-              {/* Next Steps */}
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-                <h3 className="text-md font-semibold text-gray-900 mb-3 flex items-center">
-                  <span className="mr-2">🚀</span> Next Steps
-                </h3>
-                <div className="space-y-3">
-                  {selectedData.next_steps.map((step, i) => (
-                    <div key={i} className="flex items-center p-3 bg-gray-50 rounded-lg border border-gray-100 text-sm">
-                      <span className="mr-3">{step.owner === 'business' ? '🏢' : '👤'}</span>
-                      <p className="flex-1 text-gray-800">{step.action}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="flex-1 flex items-center justify-center p-6 text-center">
-            <p className="text-gray-500">Select a lead to see details</p>
-          </div>
-        )}
+      {/*
+       * ConversationDetail
+       *   Mobile : hidden when the list panel is active
+       *   Desktop: always visible, fills remaining space
+       */}
+      <div
+        className={`${!showDetail ? 'hidden' : 'flex'} sm:flex flex-col flex-1 overflow-hidden`}
+      >
+        <ConversationDetail
+          conversationId={selectedId}
+          data={selectedData}
+          onBack={handleBack}
+        />
       </div>
     </div>
   );
